@@ -1,10 +1,10 @@
 package com.vg.apng;
 
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+
 import java.io.File;
 import java.io.IOException;
-
-import org.junit.Assert;
-import org.junit.Test;
 
 public class APNGTest {
     @Test
@@ -27,16 +27,16 @@ public class APNGTest {
         Gray[] g = new Gray[] {
                 new Gray(3, 3, a0, APNG.DELAY_1S),
                 new Gray(3, 4, a1, APNG.DELAY_1S),
-                new Gray(3, 3, a2, APNG.DELAY_1S)};
+                new Gray(3, 3, a2, APNG.DELAY_1S) };
 
         File file = new File("ab.png");
         file.deleteOnExit();
         APNG.write(g, file, APNG.INFINITE_LOOP);
         Gray[] gr = APNG.read(file);
 
-        Assert.assertEquals(3, gr.length);
-        Assert.assertArrayEquals(a0, gr[0].data.array());
-        Assert.assertArrayEquals(a1, gr[1].data.array());
-        Assert.assertArrayEquals(a2, gr[2].data.array());
+        Assertions.assertEquals(3, gr.length);
+        Assertions.assertArrayEquals(a0, gr[0].data.array());
+        Assertions.assertArrayEquals(a1, gr[1].data.array());
+        Assertions.assertArrayEquals(a2, gr[2].data.array());
     }
 }

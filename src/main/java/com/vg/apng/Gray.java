@@ -1,20 +1,15 @@
 package com.vg.apng;
 
-import static java.nio.ByteBuffer.wrap;
-
+import javax.imageio.ImageIO;
 import java.awt.Dimension;
 import java.awt.Rectangle;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
-import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileChannel.MapMode;
 
-import javax.imageio.ImageIO;
+import static java.nio.ByteBuffer.wrap;
 
 /**
  * Represent a grayscale image.
@@ -29,10 +24,11 @@ public class Gray {
 
     /**
      * Create a new Gray from info and data.
-     * @param width the image width
+     *
+     * @param width  the image width
      * @param height the image height
-     * @param data a buffer containing the pixel data
-     * @param delay the delay to put between this image and the next
+     * @param data   a buffer containing the pixel data
+     * @param delay  the delay to put between this image and the next
      */
     public Gray(int width, int height, ByteBuffer data, int delay) {
         if (width * height > data.capacity()) {
@@ -40,16 +36,17 @@ public class Gray {
         }
         this.width = width;
         this.height = height;
-        this.data = (ByteBuffer) data.duplicate().clear();
+        this.data = data.duplicate().clear();
         this.setDelay(delay);
     }
 
     /**
      * Create a new Gray from info and data.
-     * @param width the image width
+     *
+     * @param width  the image width
      * @param height the image height
-     * @param data a buffer containing the pixel data
-     * @param delay the delay to put between this image and the next
+     * @param data   a buffer containing the pixel data
+     * @param delay  the delay to put between this image and the next
      */
     public Gray(int width, int height, byte[] data, int delay) {
         this(width, height, wrap(data), delay);
@@ -69,26 +66,68 @@ public class Gray {
 
     /**
      * Create a new Gray from its info
-     * @param width the image width
+     *
+     * @param width  the image width
      * @param height the image height
-     * @param delay the delay to put between this image and the next
+     * @param delay  the delay to put between this image and the next
      */
     public Gray(int width, int height, int delay) {
         this(width, height, ByteBuffer.allocate(width * height), delay);
     }
-	
-	public int getDelay() {
+
+    /**
+     * Extract a Gray from a BufferedImage by wrapping its underlying data.
+     *
+     * @param b the BufferedImage to wrap
+     * @return a grayscale image
+     */
+    public static Gray fromBufferedImage(BufferedImage b) {
+        BufferedImage g = b;
+        if (b.getType() != BufferedImage.TYPE_BYTE_GRAY) {
+            g = new BufferedImage(b.getWidth(), b.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
+            g.getGraphics().drawImage(b, 0, 0, b.getWidth(), b.getHeight(), null);
+        }
+        byte[] data = ((DataBufferByte) g.getRaster().getDataBuffer()).getData();
+        return new Gray(b.getWidth(), b.getHeight(), wrap(data));
+    }
+
+    public static void writeBMP(Gray gray, String path) throws IOException {
+        ImageIO.write(gray.toBufferedImage(), "bmp", new File(path));
+    }
+
+    public static Gray read(String path) throws IOException {
+        return read(new File(path));
+    }
+
+    public static String readLine(ByteBuffer in) {
+        StringBuilder sb = new StringBuilder();
+        int b;
+        while (in.hasRemaining()) {
+            b = in.get() & 0xff;
+            if (b != '\n')
+                sb.append((char) b);
+            else
+                break;
+        }
+        return sb.toString();
+    }
+
+    public static Gray read(File imageFile) throws IOException {
+        return fromBufferedImage(ImageIO.read(imageFile));
+    }
+
+    public int getDelay() {
         return delayms;
     }
 
     public void setDelay(int delay) {
         this.delayms = delay;
     }
-    
+
     public byte getPixel(int x, int y) {
         return data.get(y * width + x);
     }
-    
+
     public void putPixel(int x, int y, int pix) {
         data.put(y * width + x, (byte) pix);
     }
@@ -109,7 +148,7 @@ public class Gray {
 
     public Gray equalizeHist1() {
         int hist_sz = 256;
-        int hist[] = new int[hist_sz];
+        int[] hist = new int[hist_sz];
         Dimension size = getDimension();
 
         ByteBuffer sptr = getData();
@@ -120,7 +159,7 @@ public class Gray {
 
         float scale = 255.f / (size.width * size.height);
         int sum = 0;
-        byte lut[] = new byte[hist_sz];
+        byte[] lut = new byte[hist_sz];
 
         for (int i = 0; i < hist_sz; i++) {
             sum += hist[i];
@@ -142,7 +181,7 @@ public class Gray {
 
     public Gray equalizeHist() {
         int hist_sz = 256;
-        int hist[] = new int[hist_sz];
+        int[] hist = new int[hist_sz];
         Dimension size = getDimension();
 
         ByteBuffer srcData = getData();
@@ -225,11 +264,9 @@ public class Gray {
 
     /**
      * Bilinear resize grayscale image. Target dimension is w * h. Dimension cannot be null
-     * 
-     * @param w
-     *            New width.
-     * @param h
-     *            New height.
+     *
+     * @param w New width.
+     * @param h New height.
      * @return the resized image.
      */
     public Gray scaleBilinear(int w, int h) {
@@ -254,7 +291,7 @@ public class Gray {
 
                 // Y = A(1-w)(1-h) + B(w)(1-h) + C(h)(1-w) + Dwh
                 int gray = (int) (A * (1 - x_diff) * (1 - y_diff) + B * (x_diff) * (1 - y_diff) + C * (y_diff)
-                        * (1 - x_diff) + D * (x_diff * y_diff));
+                                                                                                          * (1 - x_diff) + D * (x_diff * y_diff));
 
                 dstPix.put((byte) gray);
             }
@@ -271,7 +308,7 @@ public class Gray {
     public Gray getSubimage(int x, int y, int width, int height, ByteBuffer dest) {
         if (dest.capacity() < width * height) {
             throw new IllegalArgumentException("buffer capacity (" + (dest.capacity()) + ") < requested image size ("
-                    + (width * height) + ")");
+                                                       + (width * height) + ")");
         }
         ByteBuffer data = getData();
 
@@ -280,7 +317,7 @@ public class Gray {
         }
         if (x + width > this.width || y + height > this.height) {
             throw new IllegalArgumentException("image: " + this.width + "x" + this.height + " subimage: " + x + ":" + y
-                    + " " + width + "x" + height);
+                                                       + " " + width + "x" + height);
         }
         int offset = y * this.width + x;
         for (int i = 0; i < height; i++) {
@@ -293,22 +330,8 @@ public class Gray {
     }
 
     /**
-     * Extract a Gray from a BufferedImage by wrapping its underlying data.
-     * @param b the BufferedImage to wrap
-     * @return a grayscale image
-     */
-    public static Gray fromBufferedImage(BufferedImage b) {
-        BufferedImage g = b;
-        if (b.getType() != BufferedImage.TYPE_BYTE_GRAY) {
-            g = new BufferedImage(b.getWidth(), b.getHeight(), BufferedImage.TYPE_BYTE_GRAY);
-            g.getGraphics().drawImage(b, 0, 0, b.getWidth(), b.getHeight(), null);
-        }
-        byte[] data = ((DataBufferByte) g.getRaster().getDataBuffer()).getData();
-        return new Gray(b.getWidth(), b.getHeight(), wrap(data));
-    }
-
-    /**
      * Convert this grayscale image to a BufferedImage.
+     *
      * @return the converted BufferedImage.
      */
     public BufferedImage toBufferedImage() {
@@ -318,40 +341,11 @@ public class Gray {
         return b;
     }
 
-    public static void writeBMP(Gray gray, String path) throws IOException {
-        ImageIO.write(gray.toBufferedImage(), "bmp", new File(path));
+    public void writeToFile(String file, String format) throws IOException {
+        writeToFile(new File(file), format);
     }
 
-    public void writeBMP(String path) throws IOException {
-        writeBMP(new File(path));
+    public void writeToFile(File file, String format) throws IOException {
+        ImageIO.write(this.toBufferedImage(), format, file);
     }
-
-    public static Gray read(String path) throws IOException {
-        return read(new File(path));
-    }
-
-    public static String readLine(ByteBuffer in) {
-        StringBuilder sb = new StringBuilder();
-        int b;
-        while (in.hasRemaining()) {
-            b = in.get() & 0xff;
-            if (b != '\n')
-                sb.append((char) b);
-            else
-                break;
-        }
-        return sb.toString();
-    }
-    public static Gray read(File imageFile) throws IOException {
-        return fromBufferedImage(ImageIO.read(imageFile));
-    }
-
-    public void writeBMP(File file) throws IOException {
-        ImageIO.write(this.toBufferedImage(), "bmp", file);
-    }
-
-    public void writePNG(File file) throws IOException {
-        ImageIO.write(this.toBufferedImage(), "png", file);
-    }
-
 }

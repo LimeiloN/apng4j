@@ -1,11 +1,5 @@
 package com.vg.apng;
 
-import static com.vg.apng.APNG.IDAT_SIG;
-import static com.vg.apng.APNG.PNG_SIG;
-import static com.vg.apng.APNG.acTL_SIG;
-import static com.vg.apng.APNG.fcTL_SIG;
-import static com.vg.apng.APNG.fdAT_SIG;
-
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
@@ -14,6 +8,8 @@ import java.nio.ByteBuffer;
 import java.nio.channels.ReadableByteChannel;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
+
+import static com.vg.apng.APNG.*;
 
 /**
  * Read an APNG back into grayscale images.
@@ -134,8 +130,8 @@ class APNGReader {
         in.getInt();        // y position
         in.getShort();      // fps num
         in.getShort();      // fps den
-        in.get();  	        // dispose 1:clear, 0: do nothing, 2: revert
-        in.get();          	// blend   1:blend, 0: overwrite
+        in.get();            // dispose 1:clear, 0: do nothing, 2: revert
+        in.get();            // blend   1:blend, 0: overwrite
         in.getInt();        // crc
 
         return new FCTL(width, height);

@@ -1,0 +1,72 @@
+plugins {
+    id "java-library"
+    id "maven-publish"
+    id "com.dua3.gradle.jpms" version "1.0-BETA7"
+}
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation "org.junit.jupiter:junit-jupiter-api:5.5.2"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:5.5.2"
+}
+
+group "com.github.LimeiloN"
+version "0.3.0"
+sourceCompatibility = 11
+targetCompatibility = 11
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+            pom {
+                name = "apng4j"
+                description "Create apng images in Java"
+                url = "https://github.com/LimeiloN/apng4j"
+                licenses {
+                    license {
+                        name = "Apache 2.0"
+                        url = "https://github.com/LimeiloN/apng4j/blob/master/LICENSE"
+                    }
+                }
+                developers {
+                    developer {
+                        id = "zhuker"
+                        name = "Alex Zhukov"
+                    }
+                    developer {
+                        id = "LimeiloN"
+                        name = "Guillaume Anthouard"
+                    }
+                }
+                scm {
+                    connection = "scm:git:git://github.com/LimeiloN/apng4j.git"
+                    developerConnection = "scm:git:ssh://github.com/LimeiloN/apng4j.git"
+                    url = "https://github.com/LimeiloN/apng4j/"
+                }
+            }
+        }
+    }
+}
+
+jigsaw {
+    module "apng4j"
+    testLibraryModule "org.junit.jupiter.api"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}

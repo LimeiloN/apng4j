@@ -1,23 +1,14 @@
 package com.vg.apng;
 
-import static com.vg.apng.APNG.IDAT_SIG;
-import static com.vg.apng.APNG.IHDR_SIG;
-import static com.vg.apng.APNG.PNG_SIG;
-import static com.vg.apng.APNG.acTL_SIG;
-import static com.vg.apng.APNG.fcTL_SIG;
-import static com.vg.apng.APNG.fdAT_SIG;
-
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.OutputStream;
-import java.io.IOException;
-import java.io.ByteArrayOutputStream;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.channels.Channels;
 import java.nio.channels.WritableByteChannel;
 import java.util.zip.CRC32;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
+
+import static com.vg.apng.APNG.*;
 
 /**
  * Create APNG from grayscale images.
@@ -30,8 +21,8 @@ class APNGWriter {
 
     public static final int CHUNK_DELTA =
             4 //chunk len
-            + 4 //header
-            + 4;//CRC
+                    + 4 //header
+                    + 4;//CRC
 
     public static final int acTL_DATA_LEN = 8;
     public static final int acTL_TOTAL_LEN = acTL_DATA_LEN + CHUNK_DELTA;
@@ -43,60 +34,15 @@ class APNGWriter {
     public static final int fcTL_TOTAL_LEN = fcTL_DATA_LEN + CHUNK_DELTA;
 
     private static final byte[] IEND_ARR = new byte[] {
-            0,    0,   0,   0,
+            0, 0, 0, 0,
             'I', 'E', 'N', 'D',
             (byte) 0xae, 0x42,
             0x60, (byte) 0x82 //ae4260820
     };
 
     /**
-     * Write an APNG image to a file.
-     * @param grays the grayscale images to write
-     * @param file the File to write to
-     * @param loopCount the number of time to loop the animation (0 means infinite)
-     * @throws IOException if the specified File is invalid
-     */
-    public void write(Gray[] grays, File file, int loopCount) throws IOException {
-        write(grays, new FileOutputStream(file), loopCount);
-    }
-
-    /**
-     * Write an APNG image to a FileOutputStream.
-     * @param grays the grayscale images to write
-     * @param os the OutputStream to write to
-     * @param loopCount the number of time to loop the animation (0 means infinite)
-     * @throws IOException if the specified OutputStream is invalid
-     */
-    public void write(Gray[] grays, OutputStream os, int loopCount) throws IOException {
-        if (grays.length <= 0) {
-            throw new RuntimeException("grays[] is empty");
-        }
-
-        WritableByteChannel out = Channels.newChannel(os);
-        
-        try {
-            out.write(ByteBuffer.wrap(PNG_SIG));
-            out.write(makeIHDRChunk(grays[0].width, grays[0].height));
-            out.write(make_acTLChunk(grays.length, loopCount));
-
-            for (int i = 0, seq = 0; i < grays.length; i++) {
-
-                short[] delay = getFractionFromDelay(grays[i].getDelay());
-
-                out.write(makeFCTL(grays[i].width, grays[i].height, seq++, delay[0], delay[1]));
-                out.write(makeDAT(seq, i == 0, filterTypeNone(grays[i].width, grays[i].height, grays[i].getData())));
-
-                if (i > 0) seq++;
-            }
-
-            out.write(ByteBuffer.wrap(IEND_ARR));
-        } finally {
-            out.close();
-        }
-    }
-    
-    /**
      * Credits to Joop Eggen from Stack Overflow.
+     *
      * @param delayms the delay to change into fraction
      * @return an array containing the numerator and the denominator
      * @see <a href="https://stackoverflow.com/a/31586500/8810915">https://stackoverflow.com/a/31586500/8810915</a>
@@ -122,6 +68,54 @@ class APNGWriter {
             }
         }
         return new short[] { (short) pfound, (short) qfound };
+    }
+
+    /**
+     * Write an APNG image to a file.
+     *
+     * @param grays     the grayscale images to write
+     * @param file      the File to write to
+     * @param loopCount the number of time to loop the animation (0 means infinite)
+     * @throws IOException if the specified File is invalid
+     */
+    public void write(Gray[] grays, File file, int loopCount) throws IOException {
+        write(grays, new FileOutputStream(file), loopCount);
+    }
+
+    /**
+     * Write an APNG image to a FileOutputStream.
+     *
+     * @param grays     the grayscale images to write
+     * @param os        the OutputStream to write to
+     * @param loopCount the number of time to loop the animation (0 means infinite)
+     * @throws IOException if the specified OutputStream is invalid
+     */
+    public void write(Gray[] grays, OutputStream os, int loopCount) throws IOException {
+        if (grays.length <= 0) {
+            throw new RuntimeException("grays[] is empty");
+        }
+
+        WritableByteChannel out = Channels.newChannel(os);
+
+        try {
+            out.write(ByteBuffer.wrap(PNG_SIG));
+            out.write(makeIHDRChunk(grays[0].width, grays[0].height));
+            out.write(make_acTLChunk(grays.length, loopCount));
+
+            for (int i = 0, seq = 0; i < grays.length; i++) {
+
+                short[] delay = getFractionFromDelay(grays[i].getDelay());
+
+                out.write(makeFCTL(grays[i].width, grays[i].height, seq++, delay[0], delay[1]));
+                out.write(makeDAT(seq, i == 0, filterTypeNone(grays[i].width, grays[i].height, grays[i].getData())));
+
+                if (i > 0) seq++;
+            }
+
+            out.write(ByteBuffer.wrap(IEND_ARR));
+        } finally {
+            out.close();
+        }
     }
 
     private ByteBuffer makeIHDRChunk(int width, int height) { //http://www.w3.org/TR/PNG/#11IHDR
@@ -226,7 +220,7 @@ class APNGWriter {
         int size = compressed.remaining();
 
         if (needSeqNum)
-            size +=4;
+            size += 4;
 
         ByteBuffer bb = ByteBuffer.allocate(size + CHUNK_DELTA);
 
