@@ -26,3 +26,5 @@ target/
 .settings/
 .idea/
 *.iml
+build/
+.gradle/
